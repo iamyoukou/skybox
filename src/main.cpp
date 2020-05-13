@@ -64,6 +64,7 @@ GLuint programSkybox, programModel;
 void computeMatricesFromInputs(mat4 &, mat4 &);
 void keyCallback(GLFWwindow *, int, int, int, int);
 GLuint loadCubemap(vector<string> &);
+void drawMesh(Mesh &);
 
 void initGL() {
   // Initialise GLFW
@@ -203,63 +204,65 @@ int main(int argc, char **argv) {
 
   // for 3d model
   // (next) change mesh_info_t to the rewritten one
-  mesh_info_t meshData = load_obj("./model/torus.obj");
-  int vertexNumber = meshData.vertexTable.size();
-
-  // write vertex coordinate to array
-  GLfloat *meshCoordinate = new GLfloat[vertexNumber * 3];
-  for (size_t i = 0; i < vertexNumber; i++) {
-    vec3 &vtxCoord = meshData.vertexTable[i].vertexCoordinate;
-    meshCoordinate[i * 3] = vtxCoord.x;
-    meshCoordinate[i * 3 + 1] = vtxCoord.y;
-    meshCoordinate[i * 3 + 2] = vtxCoord.z;
-  }
-
-  // write vertex index to array
-  int indexNumber = meshData.triangleIndex.size();
-  GLushort *meshIndex = new GLushort[indexNumber * 3];
-  for (size_t i = 0; i < indexNumber; i++) {
-    ivec3 &idx = meshData.triangleIndex[i];
-    meshIndex[i * 3] = idx[0];
-    meshIndex[i * 3 + 1] = idx[1];
-    meshIndex[i * 3 + 2] = idx[2];
-  }
-
-  // write vertex normal to array
-  GLfloat *meshNormal = new GLfloat[vertexNumber * 3];
-  for (size_t i = 0; i < vertexNumber; i++) {
-    vec3 &vtxNormal = meshData.vertexTable[i].vertexNormal;
-    meshNormal[i * 3] = vtxNormal.x;
-    meshNormal[i * 3 + 1] = vtxNormal.y;
-    meshNormal[i * 3 + 2] = vtxNormal.z;
-  }
-
-  // buffer objects
-  glGenBuffers(1, &vbo_model);
-  glGenBuffers(1, &vbo_model_normal);
-  glGenBuffers(1, &ibo_model);
-  glGenVertexArrays(1, &vao_model);
-
-  glBindVertexArray(vao_model);
-
-  // vbo
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_model);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexNumber * 3,
-               meshCoordinate, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(0);
-
-  // ibo_model(index buffer object)
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_model);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indexNumber * 3,
-               meshIndex, GL_STATIC_DRAW);
-
-  // vertex normal
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_model_normal);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexNumber * 3, meshNormal,
-               GL_STATIC_DRAW);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(1);
+  //
+  Mesh meshData = loadObj("./model/torus.obj");
+  // int vertexNumber = meshData.vertexTable.size();
+  //
+  // // write vertex coordinate to array
+  // GLfloat *meshCoordinate = new GLfloat[vertexNumber * 3];
+  // for (size_t i = 0; i < vertexNumber; i++) {
+  //   vec3 &vtxCoord = meshData.vertexTable[i].vertexCoordinate;
+  //   meshCoordinate[i * 3] = vtxCoord.x;
+  //   meshCoordinate[i * 3 + 1] = vtxCoord.y;
+  //   meshCoordinate[i * 3 + 2] = vtxCoord.z;
+  // }
+  //
+  // // write vertex index to array
+  // int indexNumber = meshData.triangleIndex.size();
+  // GLushort *meshIndex = new GLushort[indexNumber * 3];
+  // for (size_t i = 0; i < indexNumber; i++) {
+  //   ivec3 &idx = meshData.triangleIndex[i];
+  //   meshIndex[i * 3] = idx[0];
+  //   meshIndex[i * 3 + 1] = idx[1];
+  //   meshIndex[i * 3 + 2] = idx[2];
+  // }
+  //
+  // // write vertex normal to array
+  // GLfloat *meshNormal = new GLfloat[vertexNumber * 3];
+  // for (size_t i = 0; i < vertexNumber; i++) {
+  //   vec3 &vtxNormal = meshData.vertexTable[i].vertexNormal;
+  //   meshNormal[i * 3] = vtxNormal.x;
+  //   meshNormal[i * 3 + 1] = vtxNormal.y;
+  //   meshNormal[i * 3 + 2] = vtxNormal.z;
+  // }
+  //
+  // // buffer objects
+  // glGenBuffers(1, &vbo_model);
+  // glGenBuffers(1, &vbo_model_normal);
+  // glGenBuffers(1, &ibo_model);
+  // glGenVertexArrays(1, &vao_model);
+  //
+  // glBindVertexArray(vao_model);
+  //
+  // // vbo
+  // glBindBuffer(GL_ARRAY_BUFFER, vbo_model);
+  // glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexNumber * 3,
+  //              meshCoordinate, GL_STATIC_DRAW);
+  // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  // glEnableVertexAttribArray(0);
+  //
+  // // ibo_model(index buffer object)
+  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_model);
+  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indexNumber * 3,
+  //              meshIndex, GL_STATIC_DRAW);
+  //
+  // // vertex normal
+  // glBindBuffer(GL_ARRAY_BUFFER, vbo_model_normal);
+  // glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexNumber * 3,
+  // meshNormal,
+  //              GL_STATIC_DRAW);
+  // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  // glEnableVertexAttribArray(1);
 
   uniform_model_model = myGetUniformLocation(programModel, "model");
   uniform_view_model = myGetUniformLocation(programModel, "view");
@@ -319,9 +322,12 @@ int main(int argc, char **argv) {
     glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
                        value_ptr(projection_model));
 
-    int size;
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-    glDrawElements(GL_TRIANGLES, size / sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    // int size;
+    // glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    // glDrawElements(GL_TRIANGLES, size / sizeof(GLushort), GL_UNSIGNED_SHORT,
+    // 0);
+
+    drawMesh(meshData);
 
     glfwSwapBuffers(window);
 
@@ -459,4 +465,128 @@ GLuint loadCubemap(vector<string> &faces) {
   glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
   return textureID;
+}
+
+void drawMesh(Mesh &tMesh) {
+  // # of faces
+  const int nFaces = tMesh.faces.size();
+
+  // # of vertices
+  const int nVertices = nFaces * 3;
+
+  // # of normals
+  const int nNormals = nVertices;
+
+  // prepare opengl objects
+  GLuint vao, vboVtx, vboClr, vboNml;
+
+  // std::cout << "# of vertices: " << nVertices << '\n';
+  // std::cout << "# of faces: " << nFaces << '\n';
+
+  // prepare arrays for vertex attributes
+  // vertex positions
+  // 3 vertices per face
+  // and 3 coordinates per vertex
+  GLfloat *vtxArray = new GLfloat[nVertices * 3];
+
+  // face normals
+  GLfloat *nmlArray = new GLfloat[nVertices * 3];
+
+  // colors
+  GLfloat *clrArray = new GLfloat[nVertices * 3];
+
+  // prepare data
+  for (int i = 0; i < nFaces; i++) {
+    // vertex 1
+    int vtxIdx = tMesh.faces[i][0];
+    vtxArray[i * 9 + 0] = tMesh.vertices[vtxIdx].x;
+    vtxArray[i * 9 + 1] = tMesh.vertices[vtxIdx].y;
+    vtxArray[i * 9 + 2] = tMesh.vertices[vtxIdx].z;
+
+    // color for vertex 1
+    clrArray[i * 9 + 0] = 0.f;
+    clrArray[i * 9 + 1] = 1.f;
+    clrArray[i * 9 + 2] = 0.f;
+
+    // normal for vertex 1
+    int nmlIdx = tMesh.faces[i][3];
+    nmlArray[i * 9 + 0] = tMesh.faceNormals[nmlIdx].x;
+    nmlArray[i * 9 + 1] = tMesh.faceNormals[nmlIdx].y;
+    nmlArray[i * 9 + 2] = tMesh.faceNormals[nmlIdx].z;
+
+    // vertex 2
+    vtxIdx = tMesh.faces[i][1];
+    vtxArray[i * 9 + 3] = tMesh.vertices[vtxIdx].x;
+    vtxArray[i * 9 + 4] = tMesh.vertices[vtxIdx].y;
+    vtxArray[i * 9 + 5] = tMesh.vertices[vtxIdx].z;
+
+    // color for vertex 2
+    clrArray[i * 9 + 3] = 0.f;
+    clrArray[i * 9 + 4] = 1.f;
+    clrArray[i * 9 + 5] = 0.f;
+
+    // normal for vertex 2
+    nmlArray[i * 9 + 3] = tMesh.faceNormals[nmlIdx].x;
+    nmlArray[i * 9 + 4] = tMesh.faceNormals[nmlIdx].y;
+    nmlArray[i * 9 + 5] = tMesh.faceNormals[nmlIdx].z;
+
+    // vertex 3
+    vtxIdx = tMesh.faces[i][2];
+    vtxArray[i * 9 + 6] = tMesh.vertices[vtxIdx].x;
+    vtxArray[i * 9 + 7] = tMesh.vertices[vtxIdx].y;
+    vtxArray[i * 9 + 8] = tMesh.vertices[vtxIdx].z;
+
+    // color for vertex 3
+    clrArray[i * 9 + 6] = 0.f;
+    clrArray[i * 9 + 7] = 1.f;
+    clrArray[i * 9 + 8] = 0.f;
+
+    // normal for vertex 3
+    nmlArray[i * 9 + 6] = tMesh.faceNormals[nmlIdx].x;
+    nmlArray[i * 9 + 7] = tMesh.faceNormals[nmlIdx].y;
+    nmlArray[i * 9 + 8] = tMesh.faceNormals[nmlIdx].z;
+  }
+
+  // prepare vao
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  // prepare vbo
+  // vertex vbo
+  glGenBuffers(1, &vboVtx);
+  glBindBuffer(GL_ARRAY_BUFFER, vboVtx);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nVertices * 3, vtxArray,
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(0);
+
+  // normal vbo
+  glGenBuffers(1, &vboNml);
+  glBindBuffer(GL_ARRAY_BUFFER, vboNml);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nNormals * 3, nmlArray,
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(1);
+
+  // color vbo
+  glGenBuffers(1, &vboClr);
+  glBindBuffer(GL_ARRAY_BUFFER, vboClr);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nVertices * 3, clrArray,
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(2);
+
+  // draw mesh
+  glDrawArrays(GL_TRIANGLES, 0, nVertices);
+
+  // delete opengl objects
+  glDeleteBuffers(1, &vboVtx);
+  glDeleteBuffers(1, &vboClr);
+  glDeleteBuffers(1, &vboNml);
+  glDeleteVertexArrays(1, &vao);
+
+  // delete arrays
+  delete[] vtxArray;
+  delete[] clrArray;
+  delete[] nmlArray;
 }

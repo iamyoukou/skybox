@@ -18,32 +18,28 @@ using namespace glm;
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-struct vertex_info_t {
-  int vertexIndex;
-  vec3 vertexCoordinate;
-  vec3 vertexNormal;
-  vector<int> connectedFaceIndex;
+class Mesh {
+public:
+  std::vector<glm::vec3> vertices;
+  std::vector<glm::vec3> uvs;
+  std::vector<glm::vec3> faceNormals;
+  std::vector<glm::ivec4> faces;
+
+  /* Constructors */
+  Mesh(){};
+  ~Mesh(){};
+
+  /* Member functions */
+  void translate(glm::vec3);
+  void scale(glm::vec3);
+  void rotate(glm::vec3);
 };
 
-struct face_info_t {
-  int faceIndex;
-  ivec4 containedVertexIndex;
-  vec3 faceNormal;
-};
-
-struct mesh_info_t {
-  vector<vertex_info_t> vertexTable;
-  vector<face_info_t> faceTable;
-  int vertexNumber;
-  vec3 minVertex, maxVertex;
-  vector<ivec3> triangleIndex;
-};
-
-string read_file(const string);
-mesh_info_t load_obj(string);
+std::string readFile(const std::string);
+Mesh loadObj(std::string);
+void printLog(GLuint &);
+void keyCallback(GLFWwindow *, int, int, int, int);
+GLint myGetUniformLocation(GLuint &, string);
 GLuint buildShader(string, string);
 GLuint compileShader(string, GLenum);
 GLuint linkShader(GLuint, GLuint);
-void printLog(GLuint &);
-vector<ivec3> quad2tri(mesh_info_t &);
-GLint myGetUniformLocation(GLuint &, string);
