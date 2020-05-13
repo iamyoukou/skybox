@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
   texture_images.push_back("./res/sahara_ft.tga");
 
   glGenTextures(1, &obj_skybox_tex);
-  glActiveTexture(1);
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_CUBE_MAP, obj_skybox_tex);
 
   for (GLuint i = 0; i < texture_images.size(); i++) {
@@ -529,16 +529,17 @@ void drawMesh(Mesh &tMesh) {
     std::cout << "FreeImage: cannot convert image." << '\n';
   }
 
+  int texUnitId = 5;
   glGenTextures(1, &vboTex);
   glBindTexture(GL_TEXTURE_2D, vboTex);
-  glActiveTexture(1);
+  glActiveTexture(GL_TEXTURE0 + texUnitId);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, FreeImage_GetWidth(textureImage),
                FreeImage_GetHeight(textureImage), 0, GL_BGR, GL_UNSIGNED_BYTE,
                (void *)FreeImage_GetBits(textureImage));
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
   uniform_tex = myGetUniformLocation(programModel, "tex");
-  glUniform1i(uniform_tex, 0);
+  glUniform1i(uniform_tex, texUnitId);
 
   // draw mesh
   glDrawArrays(GL_TRIANGLES, 0, nVertices);
