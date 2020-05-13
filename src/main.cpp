@@ -55,7 +55,8 @@ GLuint ibo_model;
 GLint uniform_model_skybox, uniform_view_skybox, uniform_projection_skybox;
 GLint uniform_model_model, uniform_view_model, uniform_projection_model;
 GLint uniform_lightColor, uniform_lightPosition, uniform_lightPower;
-GLint uniform_diffuseColor, uniform_ambientColor, uniform_specularColor;
+GLint uniform_diffuseColor, uniform_ambientColor, uniform_specularColor,
+    uniform_tex;
 mat4 ori_model_skybox, model_skybox, view_skybox, projection_skybox;
 mat4 model_model, view_model, projection_model;
 GLuint vsSkybox, fsSkybox, vsModel, fsModel;
@@ -191,7 +192,7 @@ int main(int argc, char **argv) {
   texture_images.push_back("./res/sahara_ft.tga");
 
   glGenTextures(1, &obj_skybox_tex);
-  glActiveTexture(0);
+  glActiveTexture(1);
   glBindTexture(GL_TEXTURE_CUBE_MAP, obj_skybox_tex);
 
   for (GLuint i = 0; i < texture_images.size(); i++) {
@@ -240,7 +241,7 @@ int main(int argc, char **argv) {
   glEnableVertexAttribArray(0);
 
   // for 3d model
-  Mesh meshData = loadObj("./model/rock_torus.obj");
+  Mesh meshData = loadObj("./model/rock_cube.obj");
 
   /* Loop until the user closes the window */
   while (!glfwWindowShouldClose(window)) {
@@ -390,7 +391,7 @@ void drawMesh(Mesh &tMesh) {
   const int nNormals = nVertices;
 
   // prepare opengl objects
-  GLuint vao, vboVtx, vboClr, vboNml;
+  GLuint vao, vboVtx, vboClr, vboNml, vboTex, vboUv;
 
   // std::cout << "# of vertices: " << nVertices << '\n';
   // std::cout << "# of faces: " << nFaces << '\n';
@@ -406,6 +407,9 @@ void drawMesh(Mesh &tMesh) {
 
   // colors
   GLfloat *clrArray = new GLfloat[nVertices * 3];
+
+  // uv
+  GLfloat *uvArray = new GLfloat[nVertices * 2];
 
   // prepare data
   for (int i = 0; i < nFaces; i++) {
@@ -426,6 +430,12 @@ void drawMesh(Mesh &tMesh) {
     nmlArray[i * 9 + 1] = tMesh.faceNormals[nmlIdx].y;
     nmlArray[i * 9 + 2] = tMesh.faceNormals[nmlIdx].z;
 
+    // uv for vertex 1
+    int uvIdx = tMesh.faces[i].vt1;
+    uvArray[i * 6 + 0] = tMesh.uvs[uvIdx].x;
+    uvArray[i * 6 + 1] = tMesh.uvs[uvIdx].y;
+    // std::cout << uvArray[i * 6 + 0] << '\n';
+
     // vertex 2
     vtxIdx = tMesh.faces[i].v2;
     vtxArray[i * 9 + 3] = tMesh.vertices[vtxIdx].x;
@@ -443,6 +453,11 @@ void drawMesh(Mesh &tMesh) {
     nmlArray[i * 9 + 4] = tMesh.faceNormals[nmlIdx].y;
     nmlArray[i * 9 + 5] = tMesh.faceNormals[nmlIdx].z;
 
+    // uv for vertex 2
+    uvIdx = tMesh.faces[i].vt2;
+    uvArray[i * 6 + 2] = tMesh.uvs[uvIdx].x;
+    uvArray[i * 6 + 3] = tMesh.uvs[uvIdx].y;
+
     // vertex 3
     vtxIdx = tMesh.faces[i].v3;
     vtxArray[i * 9 + 6] = tMesh.vertices[vtxIdx].x;
@@ -459,6 +474,11 @@ void drawMesh(Mesh &tMesh) {
     nmlArray[i * 9 + 6] = tMesh.faceNormals[nmlIdx].x;
     nmlArray[i * 9 + 7] = tMesh.faceNormals[nmlIdx].y;
     nmlArray[i * 9 + 8] = tMesh.faceNormals[nmlIdx].z;
+
+    // uv for vertex 3
+    uvIdx = tMesh.faces[i].vt3;
+    uvArray[i * 6 + 4] = tMesh.uvs[uvIdx].x;
+    uvArray[i * 6 + 5] = tMesh.uvs[uvIdx].y;
   }
 
   // prepare vao
@@ -490,6 +510,36 @@ void drawMesh(Mesh &tMesh) {
   glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(2);
 
+  // uv vbo
+  glGenBuffers(1, &vboUv);
+  glBindBuffer(GL_ARRAY_BUFFER, vboUv);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nVertices * 2, uvArray,
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(3);
+
+  // // texture object
+  FIBITMAP *textureImage = FreeImage_Load(FIF_JPEG, "./res/rock_basecolor.jpg");
+  if (!textureImage) {
+    std::cout << "FreeImage: cannot load image." << '\n';
+  }
+
+  textureImage = FreeImage_ConvertTo24Bits(textureImage);
+  if (!textureImage) {
+    std::cout << "FreeImage: cannot convert image." << '\n';
+  }
+
+  glGenTextures(1, &vboTex);
+  glBindTexture(GL_TEXTURE_2D, vboTex);
+  glActiveTexture(1);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, FreeImage_GetWidth(textureImage),
+               FreeImage_GetHeight(textureImage), 0, GL_BGR, GL_UNSIGNED_BYTE,
+               (void *)FreeImage_GetBits(textureImage));
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+  uniform_tex = myGetUniformLocation(programModel, "tex");
+  glUniform1i(uniform_tex, 0);
+
   // draw mesh
   glDrawArrays(GL_TRIANGLES, 0, nVertices);
 
@@ -497,10 +547,14 @@ void drawMesh(Mesh &tMesh) {
   glDeleteBuffers(1, &vboVtx);
   glDeleteBuffers(1, &vboClr);
   glDeleteBuffers(1, &vboNml);
+  glDeleteBuffers(1, &vboUv);
+  glDeleteTextures(1, &vboTex);
   glDeleteVertexArrays(1, &vao);
+  FreeImage_Unload(textureImage);
 
   // delete arrays
   delete[] vtxArray;
   delete[] clrArray;
   delete[] nmlArray;
+  delete[] uvArray;
 }
