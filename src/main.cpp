@@ -62,7 +62,7 @@ GLuint vsSkybox, fsSkybox, vsModel, fsModel;
 GLuint programSkybox, programModel;
 
 void computeMatricesFromInputs(mat4 &, mat4 &);
-void keyCallback(GLFWwindow *, int, int, int, int);
+// void keyCallback(GLFWwindow *, int, int, int, int);
 GLuint loadCubemap(vector<string> &);
 void drawMesh(Mesh &);
 
@@ -127,9 +127,47 @@ void initShader() {
   glUseProgram(programModel);
 }
 
+void initMatrices() {
+  uniform_model_model = myGetUniformLocation(programModel, "model");
+  uniform_view_model = myGetUniformLocation(programModel, "view");
+  uniform_projection_model = myGetUniformLocation(programModel, "projection");
+
+  model_model = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
+  view_model = lookAt(eyePoint, eyePoint + eyeDirection, up);
+  projection_model = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT,
+                                 0.01f, farPlane);
+
+  glUniformMatrix4fv(uniform_model_model, 1, GL_FALSE, value_ptr(model_model));
+  glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
+  glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
+                     value_ptr(projection_model));
+}
+
+void initLight() {
+  uniform_lightColor = myGetUniformLocation(programModel, "lightColor");
+  glUniform3fv(uniform_lightColor, 1, value_ptr(lightColor));
+
+  uniform_lightPosition = myGetUniformLocation(programModel, "lightPosition");
+  glUniform3fv(uniform_lightPosition, 1, value_ptr(lightPosition));
+
+  uniform_lightPower = myGetUniformLocation(programModel, "lightPower");
+  glUniform1f(uniform_lightPower, lightPower);
+
+  uniform_diffuseColor = myGetUniformLocation(programModel, "diffuseColor");
+  glUniform3fv(uniform_diffuseColor, 1, value_ptr(materialDiffuseColor));
+
+  uniform_ambientColor = myGetUniformLocation(programModel, "ambientColor");
+  glUniform3fv(uniform_ambientColor, 1, value_ptr(materialAmbientColor));
+
+  uniform_specularColor = myGetUniformLocation(programModel, "specularColor");
+  glUniform3fv(uniform_specularColor, 1, value_ptr(materialSpecularColor));
+}
+
 int main(int argc, char **argv) {
   initGL();
   initShader();
+  initMatrices();
+  initLight();
 
   /* vao_skybox */
   glGenVertexArrays(1, &vao_skybox);
@@ -194,7 +232,6 @@ int main(int argc, char **argv) {
 
   /* 创建 vbo */
   // for skybox
-
   glGenBuffers(1, &vbo_skybox);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_skybox);
   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 6 * 3, skyboxVertices,
@@ -203,99 +240,7 @@ int main(int argc, char **argv) {
   glEnableVertexAttribArray(0);
 
   // for 3d model
-  // (next) change mesh_info_t to the rewritten one
-  //
   Mesh meshData = loadObj("./model/torus.obj");
-  // int vertexNumber = meshData.vertexTable.size();
-  //
-  // // write vertex coordinate to array
-  // GLfloat *meshCoordinate = new GLfloat[vertexNumber * 3];
-  // for (size_t i = 0; i < vertexNumber; i++) {
-  //   vec3 &vtxCoord = meshData.vertexTable[i].vertexCoordinate;
-  //   meshCoordinate[i * 3] = vtxCoord.x;
-  //   meshCoordinate[i * 3 + 1] = vtxCoord.y;
-  //   meshCoordinate[i * 3 + 2] = vtxCoord.z;
-  // }
-  //
-  // // write vertex index to array
-  // int indexNumber = meshData.triangleIndex.size();
-  // GLushort *meshIndex = new GLushort[indexNumber * 3];
-  // for (size_t i = 0; i < indexNumber; i++) {
-  //   ivec3 &idx = meshData.triangleIndex[i];
-  //   meshIndex[i * 3] = idx[0];
-  //   meshIndex[i * 3 + 1] = idx[1];
-  //   meshIndex[i * 3 + 2] = idx[2];
-  // }
-  //
-  // // write vertex normal to array
-  // GLfloat *meshNormal = new GLfloat[vertexNumber * 3];
-  // for (size_t i = 0; i < vertexNumber; i++) {
-  //   vec3 &vtxNormal = meshData.vertexTable[i].vertexNormal;
-  //   meshNormal[i * 3] = vtxNormal.x;
-  //   meshNormal[i * 3 + 1] = vtxNormal.y;
-  //   meshNormal[i * 3 + 2] = vtxNormal.z;
-  // }
-  //
-  // // buffer objects
-  // glGenBuffers(1, &vbo_model);
-  // glGenBuffers(1, &vbo_model_normal);
-  // glGenBuffers(1, &ibo_model);
-  // glGenVertexArrays(1, &vao_model);
-  //
-  // glBindVertexArray(vao_model);
-  //
-  // // vbo
-  // glBindBuffer(GL_ARRAY_BUFFER, vbo_model);
-  // glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexNumber * 3,
-  //              meshCoordinate, GL_STATIC_DRAW);
-  // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  // glEnableVertexAttribArray(0);
-  //
-  // // ibo_model(index buffer object)
-  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_model);
-  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indexNumber * 3,
-  //              meshIndex, GL_STATIC_DRAW);
-  //
-  // // vertex normal
-  // glBindBuffer(GL_ARRAY_BUFFER, vbo_model_normal);
-  // glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexNumber * 3,
-  // meshNormal,
-  //              GL_STATIC_DRAW);
-  // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  // glEnableVertexAttribArray(1);
-
-  uniform_model_model = myGetUniformLocation(programModel, "model");
-  uniform_view_model = myGetUniformLocation(programModel, "view");
-  uniform_projection_model = myGetUniformLocation(programModel, "projection");
-
-  model_model = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
-  view_model = lookAt(eyePoint, eyePoint + eyeDirection, up);
-  projection_model = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT,
-                                 0.01f, farPlane);
-
-  glUniformMatrix4fv(uniform_model_model, 1, GL_FALSE, value_ptr(model_model));
-  glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
-  glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
-                     value_ptr(projection_model));
-
-  // light
-  uniform_lightColor = myGetUniformLocation(programModel, "lightColor");
-  glUniform3fv(uniform_lightColor, 1, value_ptr(lightColor));
-
-  uniform_lightPosition = myGetUniformLocation(programModel, "lightPosition");
-  glUniform3fv(uniform_lightPosition, 1, value_ptr(lightPosition));
-
-  uniform_lightPower = myGetUniformLocation(programModel, "lightPower");
-  glUniform1f(uniform_lightPower, lightPower);
-
-  uniform_diffuseColor = myGetUniformLocation(programModel, "diffuseColor");
-  glUniform3fv(uniform_diffuseColor, 1, value_ptr(materialDiffuseColor));
-
-  uniform_ambientColor = myGetUniformLocation(programModel, "ambientColor");
-  glUniform3fv(uniform_ambientColor, 1, value_ptr(materialAmbientColor));
-
-  uniform_specularColor = myGetUniformLocation(programModel, "specularColor");
-  glUniform3fv(uniform_specularColor, 1, value_ptr(materialSpecularColor));
 
   /* Loop until the user closes the window */
   while (!glfwWindowShouldClose(window)) {
@@ -321,14 +266,9 @@ int main(int argc, char **argv) {
     glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
     glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
                        value_ptr(projection_model));
-
-    // int size;
-    // glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-    // glDrawElements(GL_TRIANGLES, size / sizeof(GLushort), GL_UNSIGNED_SHORT,
-    // 0);
-
     drawMesh(meshData);
 
+    // update frame
     glfwSwapBuffers(window);
 
     /* Poll for and process events */
@@ -409,34 +349,6 @@ void computeMatricesFromInputs(mat4 &newProject, mat4 &newView) {
 
   // For the next frame, the "last time" will be "now"
   lastTime = currentTime;
-}
-
-void keyCallback(GLFWwindow *keyWnd, int key, int scancode, int action,
-                 int mods) {
-  if (action == GLFW_PRESS) {
-    switch (key) {
-    case GLFW_KEY_ESCAPE: {
-      glfwSetWindowShouldClose(keyWnd, GLFW_TRUE);
-      break;
-    }
-    case GLFW_KEY_F: {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      break;
-    }
-    case GLFW_KEY_L: {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      break;
-    }
-    case GLFW_KEY_I: {
-      // std::cout << "eyePoint: " << to_string( eyePoint ) << '\n';
-      // std::cout << "verticleAngle: " << fmod(verticalAngle, 6.28f) << ", "
-      //    << "horizontalAngle: " << fmod(horizontalAngle, 6.28f) << endl;
-      break;
-    }
-    default:
-      break;
-    }
-  }
 }
 
 GLuint loadCubemap(vector<string> &faces) {
