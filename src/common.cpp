@@ -27,7 +27,7 @@ Mesh loadObj(std::string filename) {
 
     // vertex coordinate
     if ("v" == s) {
-      float x, y, z, w;
+      float x, y, z;
       fin >> x;
       fin >> y;
       fin >> z;
@@ -35,6 +35,10 @@ Mesh loadObj(std::string filename) {
     }
     // texture coordinate
     else if ("vt" == s) {
+      float u, v;
+      fin >> u;
+      fin >> v;
+      outMesh.uvs.push_back(glm::vec2(u, v));
     }
     // face normal (recorded as vn in obj file)
     else if ("vn" == s) {
@@ -46,28 +50,46 @@ Mesh loadObj(std::string filename) {
     }
     // vertices contained in face, and face normal
     else if ("f" == s) {
-      //(v1, v2, v3, n) indices
-      glm::ivec4 tempFace; // for v in "v/vt/vn"
+      Face f;
 
       // v1/vt1/vn1
-      fin >> tempFace[0]; // first "v/vt/vn"
-      fin.ignore(2);      // remove "/vt/"
-      fin >> tempFace[3]; // all vn in "v/vt/vn" are same
+      fin >> f.v1;
+      fin.ignore(1);
+      fin >> f.vt1;
+      fin.ignore(1);
+      fin >> f.vn1;
 
-      fin >> tempFace[1]; // second "v/vt/vn"
-      fin.ignore(2);
-      fin >> tempFace[3];
+      // v2/vt2/vn2
+      fin >> f.v2;
+      fin.ignore(1);
+      fin >> f.vt2;
+      fin.ignore(1);
+      fin >> f.vn2;
 
-      fin >> tempFace[2]; // third "v/vt/vn"
-      fin.ignore(2);
-      fin >> tempFace[3];
+      // v3/vt3/vn3
+      fin >> f.v3;
+      fin.ignore(1);
+      fin >> f.vt3;
+      fin.ignore(1);
+      fin >> f.vn3;
 
       // Note:
-      //  v and vn in "v//vn" start from 1,
+      //  v, vt, vn in "v/vt/vn" start from 1,
       //  but indices of std::vector start from 0,
       //  so we need minus 1 for all elements
-      tempFace -= glm::ivec4(1, 1, 1, 1);
-      outMesh.faces.push_back(tempFace);
+      f.v1 -= 1;
+      f.vt1 -= 1;
+      f.vn1 -= 1;
+
+      f.v2 -= 1;
+      f.vt2 -= 1;
+      f.vn2 -= 1;
+
+      f.v3 -= 1;
+      f.vt3 -= 1;
+      f.vn3 -= 1;
+
+      outMesh.faces.push_back(f);
     } else {
       continue;
     }

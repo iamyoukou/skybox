@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext.hpp>
 
@@ -18,12 +19,18 @@ using namespace glm;
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
+typedef struct {
+  float v1, v2, v3;
+  float vt1, vt2, vt3;
+  float vn1, vn2, vn3;
+} Face;
+
 class Mesh {
 public:
   std::vector<glm::vec3> vertices;
-  std::vector<glm::vec3> uvs;
+  std::vector<glm::vec2> uvs;
   std::vector<glm::vec3> faceNormals;
-  std::vector<glm::ivec4> faces;
+  std::vector<Face> faces;
 
   /* Constructors */
   Mesh(){};

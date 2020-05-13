@@ -240,7 +240,7 @@ int main(int argc, char **argv) {
   glEnableVertexAttribArray(0);
 
   // for 3d model
-  Mesh meshData = loadObj("./model/torus.obj");
+  Mesh meshData = loadObj("./model/rock_torus.obj");
 
   /* Loop until the user closes the window */
   while (!glfwWindowShouldClose(window)) {
@@ -410,7 +410,7 @@ void drawMesh(Mesh &tMesh) {
   // prepare data
   for (int i = 0; i < nFaces; i++) {
     // vertex 1
-    int vtxIdx = tMesh.faces[i][0];
+    int vtxIdx = tMesh.faces[i].v1;
     vtxArray[i * 9 + 0] = tMesh.vertices[vtxIdx].x;
     vtxArray[i * 9 + 1] = tMesh.vertices[vtxIdx].y;
     vtxArray[i * 9 + 2] = tMesh.vertices[vtxIdx].z;
@@ -421,13 +421,13 @@ void drawMesh(Mesh &tMesh) {
     clrArray[i * 9 + 2] = 0.f;
 
     // normal for vertex 1
-    int nmlIdx = tMesh.faces[i][3];
+    int nmlIdx = tMesh.faces[i].vn1;
     nmlArray[i * 9 + 0] = tMesh.faceNormals[nmlIdx].x;
     nmlArray[i * 9 + 1] = tMesh.faceNormals[nmlIdx].y;
     nmlArray[i * 9 + 2] = tMesh.faceNormals[nmlIdx].z;
 
     // vertex 2
-    vtxIdx = tMesh.faces[i][1];
+    vtxIdx = tMesh.faces[i].v2;
     vtxArray[i * 9 + 3] = tMesh.vertices[vtxIdx].x;
     vtxArray[i * 9 + 4] = tMesh.vertices[vtxIdx].y;
     vtxArray[i * 9 + 5] = tMesh.vertices[vtxIdx].z;
@@ -438,12 +438,13 @@ void drawMesh(Mesh &tMesh) {
     clrArray[i * 9 + 5] = 0.f;
 
     // normal for vertex 2
+    nmlIdx = tMesh.faces[i].vn2;
     nmlArray[i * 9 + 3] = tMesh.faceNormals[nmlIdx].x;
     nmlArray[i * 9 + 4] = tMesh.faceNormals[nmlIdx].y;
     nmlArray[i * 9 + 5] = tMesh.faceNormals[nmlIdx].z;
 
     // vertex 3
-    vtxIdx = tMesh.faces[i][2];
+    vtxIdx = tMesh.faces[i].v3;
     vtxArray[i * 9 + 6] = tMesh.vertices[vtxIdx].x;
     vtxArray[i * 9 + 7] = tMesh.vertices[vtxIdx].y;
     vtxArray[i * 9 + 8] = tMesh.vertices[vtxIdx].z;
@@ -454,6 +455,7 @@ void drawMesh(Mesh &tMesh) {
     clrArray[i * 9 + 8] = 0.f;
 
     // normal for vertex 3
+    nmlIdx = tMesh.faces[i].vn3;
     nmlArray[i * 9 + 6] = tMesh.faceNormals[nmlIdx].x;
     nmlArray[i * 9 + 7] = tMesh.faceNormals[nmlIdx].y;
     nmlArray[i * 9 + 8] = tMesh.faceNormals[nmlIdx].z;
