@@ -350,12 +350,12 @@ void initSkybox() {
 
   // texture
   vector<string> texture_images;
-  texture_images.push_back("./res/sahara_rt.tga");
-  texture_images.push_back("./res/sahara_lf.tga");
-  texture_images.push_back("./res/sahara_dn.tga");
-  texture_images.push_back("./res/sahara_up.tga");
-  texture_images.push_back("./res/sahara_bk.tga");
-  texture_images.push_back("./res/sahara_ft.tga");
+  texture_images.push_back("./res/right.png");
+  texture_images.push_back("./res/left.png");
+  texture_images.push_back("./res/bottom.png");
+  texture_images.push_back("./res/top.png");
+  texture_images.push_back("./res/back.png");
+  texture_images.push_back("./res/front.png");
 
   glActiveTexture(GL_TEXTURE0);
   glGenTextures(1, &obj_skybox_tex);
@@ -366,7 +366,7 @@ void initSkybox() {
     FIBITMAP *image;
 
     image = FreeImage_ConvertTo24Bits(
-        FreeImage_Load(FIF_TARGA, texture_images[i].c_str()));
+        FreeImage_Load(FIF_PNG, texture_images[i].c_str()));
     width = FreeImage_GetWidth(image);
     height = FreeImage_GetHeight(image);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
