@@ -344,11 +344,21 @@ void initLight() {
 }
 
 void initSkybox() {
-  /* vao_skybox */
+  // texture
   glGenVertexArrays(1, &vao_skybox);
   glBindVertexArray(vao_skybox);
 
-  // texture
+  glActiveTexture(GL_TEXTURE0);
+  glGenTextures(1, &obj_skybox_tex);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, obj_skybox_tex);
+
+  // necessary parameter setting
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
   vector<string> texture_images;
   texture_images.push_back("./res/right.png");
   texture_images.push_back("./res/left.png");
@@ -356,10 +366,6 @@ void initSkybox() {
   texture_images.push_back("./res/top.png");
   texture_images.push_back("./res/back.png");
   texture_images.push_back("./res/front.png");
-
-  glActiveTexture(GL_TEXTURE0);
-  glGenTextures(1, &obj_skybox_tex);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, obj_skybox_tex);
 
   for (GLuint i = 0; i < texture_images.size(); i++) {
     int width, height;
@@ -374,12 +380,17 @@ void initSkybox() {
     FreeImage_Unload(image);
   }
 
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+  // vbo
+  // cannot put these code before setting texture
+  // don't know why
+  glGenBuffers(1, &vbo_skybox);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_skybox);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 6 * 3, skyboxVertices,
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(0);
 
+  // uniforms
   glUseProgram(programSkybox);
   uniform_model_skybox = myGetUniformLocation(programSkybox, "model");
   uniform_view_skybox = myGetUniformLocation(programSkybox, "view");
@@ -390,17 +401,10 @@ void initSkybox() {
   view_skybox = lookAt(eyePoint, eyePoint + eyeDirection, up);
   projection_skybox = perspective(
       initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01f, farPlane);
+
   glUniformMatrix4fv(uniform_model_skybox, 1, GL_FALSE,
                      value_ptr(model_skybox));
   glUniformMatrix4fv(uniform_view_skybox, 1, GL_FALSE, value_ptr(view_skybox));
   glUniformMatrix4fv(uniform_projection_skybox, 1, GL_FALSE,
                      value_ptr(projection_skybox));
-
-  // for skybox
-  glGenBuffers(1, &vbo_skybox);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_skybox);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 6 * 3, skyboxVertices,
-               GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(0);
 }
