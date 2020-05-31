@@ -62,7 +62,7 @@ mat4 model_model, view_model, projection_model;
 GLuint vsSkybox, fsSkybox, vsModel, fsModel;
 GLuint programSkybox, programModel;
 
-void computeMatricesFromInputs(mat4 &, mat4 &);
+void computeMatricesFromInputs();
 void keyCallback(GLFWwindow *, int, int, int, int);
 GLuint loadCubemap(vector<string> &);
 void drawMesh(Mesh &);
@@ -99,8 +99,6 @@ int main(int argc, char **argv) {
     int width, height;
     FIBITMAP *image;
 
-    // image = FreeImage_ConvertTo24Bits( FreeImage_Load(FIF_PNG,
-    // texture_images[i].c_str()) );
     image = FreeImage_ConvertTo24Bits(
         FreeImage_Load(FIF_TARGA, texture_images[i].c_str()));
     width = FreeImage_GetWidth(image);
@@ -131,7 +129,6 @@ int main(int argc, char **argv) {
   glUniformMatrix4fv(uniform_projection_skybox, 1, GL_FALSE,
                      value_ptr(projection_skybox));
 
-  /* 创建 vbo */
   // for skybox
   glGenBuffers(1, &vbo_skybox);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_skybox);
@@ -156,22 +153,16 @@ int main(int argc, char **argv) {
     glClearColor(97 / 256.f, 175 / 256.f, 239 / 256.f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // view control
+    computeMatricesFromInputs();
+
     // draw skybox
     glUseProgram(programSkybox);
     glBindVertexArray(vao_skybox);
-    computeMatricesFromInputs(projection_skybox, view_skybox);
-    glUniformMatrix4fv(uniform_view_skybox, 1, GL_FALSE,
-                       value_ptr(view_skybox));
-    glUniformMatrix4fv(uniform_projection_skybox, 1, GL_FALSE,
-                       value_ptr(projection_skybox));
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // draw 3d models
     glUseProgram(programModel);
-    computeMatricesFromInputs(projection_model, view_model);
-    glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
-    glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
-                       value_ptr(projection_model));
     glBindVertexArray(mesh.vao);
     glDrawArrays(GL_TRIANGLES, 0, mesh.faces.size() * 3);
 
@@ -190,7 +181,7 @@ int main(int argc, char **argv) {
   return EXIT_SUCCESS;
 }
 
-void computeMatricesFromInputs(mat4 &newProject, mat4 &newView) {
+void computeMatricesFromInputs() {
   // glfwGetTime is called only once, the first time this function is called
   static float lastTime = glfwGetTime();
 
@@ -206,8 +197,8 @@ void computeMatricesFromInputs(mat4 &newProject, mat4 &newView) {
   glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
   // Compute new orientation
-  //因为事先一步固定光标在屏幕中心
-  //所以 WINDOW_WIDTH/2.f - xpos 和 WINDOW_HEIGHT/2.f - ypos 成了移动量
+  // The cursor is set to the center of the screen last frame,
+  // so (currentCursorPos - center) is the offset of this frame
   horizontalAngle += mouseSpeed * float(xpos - WINDOW_WIDTH / 2.f);
   verticalAngle += mouseSpeed * float(-ypos + WINDOW_HEIGHT / 2.f);
 
@@ -241,18 +232,34 @@ void computeMatricesFromInputs(mat4 &newProject, mat4 &newView) {
   }
 
   // float FoV = initialFoV;
-  newProject = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f,
-                           farPlane);
+  mat4 newProject = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT,
+                                0.1f, farPlane);
   // Camera matrix
-  newView = lookAt(eyePoint, eyePoint + direction, newUp);
+  mat4 newView = lookAt(eyePoint, eyePoint + direction, newUp);
 
-  //使 skybox 的中心永远位于 eyePoint
-  //注意：GLM 的矩阵是 column major
+  // update for skybox
+  glUseProgram(programSkybox);
+  view_skybox = newView;
+  projection_skybox = newProject;
+  glUniformMatrix4fv(uniform_view_skybox, 1, GL_FALSE, value_ptr(view_skybox));
+  glUniformMatrix4fv(uniform_projection_skybox, 1, GL_FALSE,
+                     value_ptr(projection_skybox));
+
+  // make sure that the center of skybox is always at eyePoint
+  // the GLM matrix is column major
   model_skybox[3][0] = ori_model_skybox[0][3] + eyePoint.x;
   model_skybox[3][1] = ori_model_skybox[1][3] + eyePoint.y;
   model_skybox[3][2] = ori_model_skybox[2][3] + eyePoint.z;
   glUniformMatrix4fv(uniform_model_skybox, 1, GL_FALSE,
                      value_ptr(model_skybox));
+
+  // update for mesh
+  glUseProgram(programModel);
+  view_model = newView;
+  projection_model = newProject;
+  glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
+  glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
+                     value_ptr(projection_model));
 
   // For the next frame, the "last time" will be "now"
   lastTime = currentTime;
