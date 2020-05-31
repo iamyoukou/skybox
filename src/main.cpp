@@ -234,8 +234,8 @@ void keyCallback(GLFWwindow *keyWnd, int key, int scancode, int action,
     }
     default:
       break;
-    }
-  }
+    } // end switch
+  }   // end if
 }
 
 void initGL() {
