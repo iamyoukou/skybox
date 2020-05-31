@@ -64,78 +64,23 @@ GLuint programSkybox, programModel;
 
 void computeMatricesFromInputs();
 void keyCallback(GLFWwindow *, int, int, int, int);
-GLuint loadCubemap(vector<string> &);
-void drawMesh(Mesh &);
 
 void initGL();
+void initOther();
 void initShader();
 void initMatrix();
 void initLight();
+void initSkybox();
 
 int main(int argc, char **argv) {
   initGL();
+  initOther();
   initShader();
   initMatrix();
   initLight();
 
-  /* vao_skybox */
-  glGenVertexArrays(1, &vao_skybox);
-  glBindVertexArray(vao_skybox);
-
-  // texture
-  vector<string> texture_images;
-  texture_images.push_back("./res/sahara_rt.tga");
-  texture_images.push_back("./res/sahara_lf.tga");
-  texture_images.push_back("./res/sahara_dn.tga");
-  texture_images.push_back("./res/sahara_up.tga");
-  texture_images.push_back("./res/sahara_bk.tga");
-  texture_images.push_back("./res/sahara_ft.tga");
-
-  glActiveTexture(GL_TEXTURE0);
-  glGenTextures(1, &obj_skybox_tex);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, obj_skybox_tex);
-
-  for (GLuint i = 0; i < texture_images.size(); i++) {
-    int width, height;
-    FIBITMAP *image;
-
-    image = FreeImage_ConvertTo24Bits(
-        FreeImage_Load(FIF_TARGA, texture_images[i].c_str()));
-    width = FreeImage_GetWidth(image);
-    height = FreeImage_GetHeight(image);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
-                 0, GL_BGR, GL_UNSIGNED_BYTE, (void *)FreeImage_GetBits(image));
-    FreeImage_Unload(image);
-  }
-
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-  uniform_model_skybox = myGetUniformLocation(programSkybox, "model");
-  uniform_view_skybox = myGetUniformLocation(programSkybox, "view");
-  uniform_projection_skybox = myGetUniformLocation(programSkybox, "projection");
-
-  model_skybox = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
-  ori_model_skybox = model_skybox;
-  view_skybox = lookAt(eyePoint, eyePoint + eyeDirection, up);
-  projection_skybox = perspective(
-      initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01f, farPlane);
-  glUniformMatrix4fv(uniform_model_skybox, 1, GL_FALSE,
-                     value_ptr(model_skybox));
-  glUniformMatrix4fv(uniform_view_skybox, 1, GL_FALSE, value_ptr(view_skybox));
-  glUniformMatrix4fv(uniform_projection_skybox, 1, GL_FALSE,
-                     value_ptr(projection_skybox));
-
-  // for skybox
-  glGenBuffers(1, &vbo_skybox);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_skybox);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 6 * 3, skyboxVertices,
-               GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(0);
+  // skybox
+  initSkybox();
 
   // for 3d model
   Mesh mesh = loadObj("./model/rock_cube.obj");
@@ -265,35 +210,6 @@ void computeMatricesFromInputs() {
   lastTime = currentTime;
 }
 
-// GLuint loadCubemap(vector<string> &faces) {
-//   GLuint textureID;
-//   glGenTextures(1, &textureID);
-//   glActiveTexture(GL_TEXTURE0);
-//
-//   int width, height;
-//   FIBITMAP *image;
-//
-//   glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-//   for (GLuint i = 0; i < faces.size(); i++) {
-//     image = FreeImage_Load(FIF_PNG, faces[i].c_str());
-//     FreeImage_ConvertTo24Bits(image);
-//     width = FreeImage_GetWidth(image);
-//     height = FreeImage_GetHeight(image);
-//     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width,
-//     height,
-//                  0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-//   }
-//
-//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-//   glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-//
-//   return textureID;
-// }
-
 void keyCallback(GLFWwindow *keyWnd, int key, int scancode, int action,
                  int mods) {
   if (action == GLFW_PRESS) {
@@ -327,6 +243,7 @@ void initGL() {
   if (!glfwInit()) {
     fprintf(stderr, "Failed to initialize GLFW\n");
     getchar();
+    exit(EXIT_FAILURE);
   }
 
   // without setting GLFW_CONTEXT_VERSION_MAJOR and _MINOR，
@@ -346,6 +263,7 @@ void initGL() {
   if (window == NULL) {
     std::cout << "Failed to open GLFW window." << std::endl;
     glfwTerminate();
+    exit(EXIT_FAILURE);
   }
 
   glfwMakeContextCurrent(window);
@@ -360,30 +278,34 @@ void initGL() {
     fprintf(stderr, "Failed to initialize GLEW\n");
     getchar();
     glfwTerminate();
+    exit(EXIT_FAILURE);
   }
 
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
-  // glCullFace(GL_FRONT_AND_BACK);
+}
 
+void initOther() {
   // FreeImage library
   FreeImage_Initialise(true);
 }
 
 void initShader() {
-  string vsDir = shaderDir + "vsSkybox.glsl";
-  string fsDir = shaderDir + "fsSkybox.glsl";
+  string vsDir, fsDir;
+
+  // skybox
+  vsDir = shaderDir + "vsSkybox.glsl";
+  fsDir = shaderDir + "fsSkybox.glsl";
   programSkybox = buildShader(vsDir, fsDir);
 
+  // mesh
   vsDir = shaderDir + "vsModel.glsl";
   fsDir = shaderDir + "fsModel.glsl";
   programModel = buildShader(vsDir, fsDir);
-
-  glUseProgram(programSkybox);
-  glUseProgram(programModel);
 }
 
 void initMatrix() {
+  glUseProgram(programModel);
   uniform_model_model = myGetUniformLocation(programModel, "model");
   uniform_view_model = myGetUniformLocation(programModel, "view");
   uniform_projection_model = myGetUniformLocation(programModel, "projection");
@@ -400,6 +322,8 @@ void initMatrix() {
 }
 
 void initLight() {
+  glUseProgram(programModel);
+
   uniform_lightColor = myGetUniformLocation(programModel, "lightColor");
   glUniform3fv(uniform_lightColor, 1, value_ptr(lightColor));
 
@@ -417,4 +341,66 @@ void initLight() {
 
   uniform_specularColor = myGetUniformLocation(programModel, "specularColor");
   glUniform3fv(uniform_specularColor, 1, value_ptr(materialSpecularColor));
+}
+
+void initSkybox() {
+  /* vao_skybox */
+  glGenVertexArrays(1, &vao_skybox);
+  glBindVertexArray(vao_skybox);
+
+  // texture
+  vector<string> texture_images;
+  texture_images.push_back("./res/sahara_rt.tga");
+  texture_images.push_back("./res/sahara_lf.tga");
+  texture_images.push_back("./res/sahara_dn.tga");
+  texture_images.push_back("./res/sahara_up.tga");
+  texture_images.push_back("./res/sahara_bk.tga");
+  texture_images.push_back("./res/sahara_ft.tga");
+
+  glActiveTexture(GL_TEXTURE0);
+  glGenTextures(1, &obj_skybox_tex);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, obj_skybox_tex);
+
+  for (GLuint i = 0; i < texture_images.size(); i++) {
+    int width, height;
+    FIBITMAP *image;
+
+    image = FreeImage_ConvertTo24Bits(
+        FreeImage_Load(FIF_TARGA, texture_images[i].c_str()));
+    width = FreeImage_GetWidth(image);
+    height = FreeImage_GetHeight(image);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
+                 0, GL_BGR, GL_UNSIGNED_BYTE, (void *)FreeImage_GetBits(image));
+    FreeImage_Unload(image);
+  }
+
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  glUseProgram(programSkybox);
+  uniform_model_skybox = myGetUniformLocation(programSkybox, "model");
+  uniform_view_skybox = myGetUniformLocation(programSkybox, "view");
+  uniform_projection_skybox = myGetUniformLocation(programSkybox, "projection");
+
+  model_skybox = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
+  ori_model_skybox = model_skybox;
+  view_skybox = lookAt(eyePoint, eyePoint + eyeDirection, up);
+  projection_skybox = perspective(
+      initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01f, farPlane);
+  glUniformMatrix4fv(uniform_model_skybox, 1, GL_FALSE,
+                     value_ptr(model_skybox));
+  glUniformMatrix4fv(uniform_view_skybox, 1, GL_FALSE, value_ptr(view_skybox));
+  glUniformMatrix4fv(uniform_projection_skybox, 1, GL_FALSE,
+                     value_ptr(projection_skybox));
+
+  // for skybox
+  glGenBuffers(1, &vbo_skybox);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_skybox);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 6 * 3, skyboxVertices,
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(0);
 }
