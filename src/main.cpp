@@ -191,8 +191,8 @@ int main(int argc, char **argv) {
   texture_images.push_back("./res/sahara_bk.tga");
   texture_images.push_back("./res/sahara_ft.tga");
 
-  glGenTextures(1, &obj_skybox_tex);
   glActiveTexture(GL_TEXTURE0);
+  glGenTextures(1, &obj_skybox_tex);
   glBindTexture(GL_TEXTURE_CUBE_MAP, obj_skybox_tex);
 
   for (GLuint i = 0; i < texture_images.size(); i++) {
@@ -352,33 +352,34 @@ void computeMatricesFromInputs(mat4 &newProject, mat4 &newView) {
   lastTime = currentTime;
 }
 
-GLuint loadCubemap(vector<string> &faces) {
-  GLuint textureID;
-  glGenTextures(1, &textureID);
-  glActiveTexture(GL_TEXTURE0);
-
-  int width, height;
-  FIBITMAP *image;
-
-  glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-  for (GLuint i = 0; i < faces.size(); i++) {
-    image = FreeImage_Load(FIF_PNG, faces[i].c_str());
-    FreeImage_ConvertTo24Bits(image);
-    width = FreeImage_GetWidth(image);
-    height = FreeImage_GetHeight(image);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
-                 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-  }
-
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-
-  return textureID;
-}
+// GLuint loadCubemap(vector<string> &faces) {
+//   GLuint textureID;
+//   glGenTextures(1, &textureID);
+//   glActiveTexture(GL_TEXTURE0);
+//
+//   int width, height;
+//   FIBITMAP *image;
+//
+//   glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+//   for (GLuint i = 0; i < faces.size(); i++) {
+//     image = FreeImage_Load(FIF_PNG, faces[i].c_str());
+//     FreeImage_ConvertTo24Bits(image);
+//     width = FreeImage_GetWidth(image);
+//     height = FreeImage_GetHeight(image);
+//     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width,
+//     height,
+//                  0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+//   }
+//
+//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+//   glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+//
+//   return textureID;
+// }
 
 void drawMesh(Mesh &tMesh) {
   // # of faces
@@ -529,7 +530,7 @@ void drawMesh(Mesh &tMesh) {
     std::cout << "FreeImage: cannot convert image." << '\n';
   }
 
-  int texUnitId = 5;
+  int texUnitId = 7;
   glGenTextures(1, &vboTex);
   glBindTexture(GL_TEXTURE_2D, vboTex);
   glActiveTexture(GL_TEXTURE0 + texUnitId);

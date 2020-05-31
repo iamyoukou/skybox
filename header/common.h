@@ -20,9 +20,9 @@ using namespace glm;
 #define WINDOW_HEIGHT 600
 
 typedef struct {
-  float v1, v2, v3;
-  float vt1, vt2, vt3;
-  float vn1, vn2, vn3;
+  GLuint v1, v2, v3;
+  GLuint vt1, vt2, vt3;
+  GLuint vn1, vn2, vn3;
 } Face;
 
 class Mesh {
