@@ -63,111 +63,19 @@ GLuint vsSkybox, fsSkybox, vsModel, fsModel;
 GLuint programSkybox, programModel;
 
 void computeMatricesFromInputs(mat4 &, mat4 &);
-// void keyCallback(GLFWwindow *, int, int, int, int);
+void keyCallback(GLFWwindow *, int, int, int, int);
 GLuint loadCubemap(vector<string> &);
 void drawMesh(Mesh &);
 
-void initGL() {
-  // Initialise GLFW
-  if (!glfwInit()) {
-    fprintf(stderr, "Failed to initialize GLFW\n");
-    getchar();
-  }
-
-  // without setting GLFW_CONTEXT_VERSION_MAJOR and _MINOR，
-  // OpenGL 1.x will be used
-  glfwWindowHint(GLFW_SAMPLES, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
-  // must be used if OpenGL version >= 3.0
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-  // Open a window and create its OpenGL context
-  window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT,
-                            "GLFW window with AntTweakBar", NULL, NULL);
-
-  if (window == NULL) {
-    std::cout << "Failed to open GLFW window." << std::endl;
-    glfwTerminate();
-  }
-
-  glfwMakeContextCurrent(window);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetKeyCallback(window, keyCallback);
-
-  /* Initialize GLEW */
-  // without this, glGenVertexArrays will report ERROR!
-  glewExperimental = GL_TRUE;
-
-  if (glewInit() != GLEW_OK) {
-    fprintf(stderr, "Failed to initialize GLEW\n");
-    getchar();
-    glfwTerminate();
-  }
-
-  glEnable(GL_CULL_FACE);
-  glEnable(GL_DEPTH_TEST);
-  // glCullFace(GL_FRONT_AND_BACK);
-
-  // FreeImage library
-  FreeImage_Initialise(true);
-}
-
-void initShader() {
-  string vsDir = shaderDir + "vsSkybox.glsl";
-  string fsDir = shaderDir + "fsSkybox.glsl";
-  programSkybox = buildShader(vsDir, fsDir);
-
-  vsDir = shaderDir + "vsModel.glsl";
-  fsDir = shaderDir + "fsModel.glsl";
-  programModel = buildShader(vsDir, fsDir);
-
-  glUseProgram(programSkybox);
-  glUseProgram(programModel);
-}
-
-void initMatrices() {
-  uniform_model_model = myGetUniformLocation(programModel, "model");
-  uniform_view_model = myGetUniformLocation(programModel, "view");
-  uniform_projection_model = myGetUniformLocation(programModel, "projection");
-
-  model_model = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
-  view_model = lookAt(eyePoint, eyePoint + eyeDirection, up);
-  projection_model = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT,
-                                 0.01f, farPlane);
-
-  glUniformMatrix4fv(uniform_model_model, 1, GL_FALSE, value_ptr(model_model));
-  glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
-  glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
-                     value_ptr(projection_model));
-}
-
-void initLight() {
-  uniform_lightColor = myGetUniformLocation(programModel, "lightColor");
-  glUniform3fv(uniform_lightColor, 1, value_ptr(lightColor));
-
-  uniform_lightPosition = myGetUniformLocation(programModel, "lightPosition");
-  glUniform3fv(uniform_lightPosition, 1, value_ptr(lightPosition));
-
-  uniform_lightPower = myGetUniformLocation(programModel, "lightPower");
-  glUniform1f(uniform_lightPower, lightPower);
-
-  uniform_diffuseColor = myGetUniformLocation(programModel, "diffuseColor");
-  glUniform3fv(uniform_diffuseColor, 1, value_ptr(materialDiffuseColor));
-
-  uniform_ambientColor = myGetUniformLocation(programModel, "ambientColor");
-  glUniform3fv(uniform_ambientColor, 1, value_ptr(materialAmbientColor));
-
-  uniform_specularColor = myGetUniformLocation(programModel, "specularColor");
-  glUniform3fv(uniform_specularColor, 1, value_ptr(materialSpecularColor));
-}
+void initGL();
+void initShader();
+void initMatrix();
+void initLight();
 
 int main(int argc, char **argv) {
   initGL();
   initShader();
-  initMatrices();
+  initMatrix();
   initLight();
 
   /* vao_skybox */
@@ -176,14 +84,6 @@ int main(int argc, char **argv) {
 
   // texture
   vector<string> texture_images;
-
-  // texture_images.push_back("right.png");
-  // texture_images.push_back("left.png");
-  // texture_images.push_back("bottom.png");
-  // texture_images.push_back("top.png");
-  // texture_images.push_back("back.png");
-  // texture_images.push_back("front.png");
-
   texture_images.push_back("./res/sahara_rt.tga");
   texture_images.push_back("./res/sahara_lf.tga");
   texture_images.push_back("./res/sahara_dn.tga");
@@ -241,7 +141,14 @@ int main(int argc, char **argv) {
   glEnableVertexAttribArray(0);
 
   // for 3d model
-  Mesh meshData = loadObj("./model/rock_cube.obj");
+  Mesh mesh = loadObj("./model/rock_cube.obj");
+  initMesh(mesh);
+
+  // a rough way to solve cursor position initialization problem
+  // must call glfwPollEvents once to activate glfwSetCursorPos
+  // this is a glfw mechanism problem
+  glfwPollEvents();
+  glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
   /* Loop until the user closes the window */
   while (!glfwWindowShouldClose(window)) {
@@ -261,13 +168,12 @@ int main(int argc, char **argv) {
 
     // draw 3d models
     glUseProgram(programModel);
-    glBindVertexArray(vao_model);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_model);
     computeMatricesFromInputs(projection_model, view_model);
     glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
     glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
                        value_ptr(projection_model));
-    drawMesh(meshData);
+    glBindVertexArray(mesh.vao);
+    glDrawArrays(GL_TRIANGLES, 0, mesh.faces.size() * 3);
 
     // update frame
     glfwSwapBuffers(window);
@@ -381,182 +287,127 @@ void computeMatricesFromInputs(mat4 &newProject, mat4 &newView) {
 //   return textureID;
 // }
 
-void drawMesh(Mesh &tMesh) {
-  // # of faces
-  const int nFaces = tMesh.faces.size();
+void keyCallback(GLFWwindow *keyWnd, int key, int scancode, int action,
+                 int mods) {
+  if (action == GLFW_PRESS) {
+    switch (key) {
+    case GLFW_KEY_ESCAPE: {
+      glfwSetWindowShouldClose(keyWnd, GLFW_TRUE);
+      break;
+    }
+    case GLFW_KEY_F: {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      break;
+    }
+    case GLFW_KEY_L: {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      break;
+    }
+    case GLFW_KEY_I: {
+      std::cout << "eyePoint: " << to_string(eyePoint) << '\n';
+      std::cout << "verticleAngle: " << fmod(verticalAngle, 6.28f) << ", "
+                << "horizontalAngle: " << fmod(horizontalAngle, 6.28f) << endl;
+      break;
+    }
+    default:
+      break;
+    }
+  }
+}
 
-  // # of vertices
-  const int nVertices = nFaces * 3;
-
-  // # of normals
-  const int nNormals = nVertices;
-
-  // prepare opengl objects
-  GLuint vao, vboVtx, vboClr, vboNml, vboTex, vboUv;
-
-  // std::cout << "# of vertices: " << nVertices << '\n';
-  // std::cout << "# of faces: " << nFaces << '\n';
-
-  // prepare arrays for vertex attributes
-  // vertex positions
-  // 3 vertices per face
-  // and 3 coordinates per vertex
-  GLfloat *vtxArray = new GLfloat[nVertices * 3];
-
-  // face normals
-  GLfloat *nmlArray = new GLfloat[nVertices * 3];
-
-  // colors
-  GLfloat *clrArray = new GLfloat[nVertices * 3];
-
-  // uv
-  GLfloat *uvArray = new GLfloat[nVertices * 2];
-
-  // prepare data
-  for (int i = 0; i < nFaces; i++) {
-    // vertex 1
-    int vtxIdx = tMesh.faces[i].v1;
-    vtxArray[i * 9 + 0] = tMesh.vertices[vtxIdx].x;
-    vtxArray[i * 9 + 1] = tMesh.vertices[vtxIdx].y;
-    vtxArray[i * 9 + 2] = tMesh.vertices[vtxIdx].z;
-
-    // color for vertex 1
-    clrArray[i * 9 + 0] = 0.f;
-    clrArray[i * 9 + 1] = 1.f;
-    clrArray[i * 9 + 2] = 0.f;
-
-    // normal for vertex 1
-    int nmlIdx = tMesh.faces[i].vn1;
-    nmlArray[i * 9 + 0] = tMesh.faceNormals[nmlIdx].x;
-    nmlArray[i * 9 + 1] = tMesh.faceNormals[nmlIdx].y;
-    nmlArray[i * 9 + 2] = tMesh.faceNormals[nmlIdx].z;
-
-    // uv for vertex 1
-    int uvIdx = tMesh.faces[i].vt1;
-    uvArray[i * 6 + 0] = tMesh.uvs[uvIdx].x;
-    uvArray[i * 6 + 1] = tMesh.uvs[uvIdx].y;
-    // std::cout << uvArray[i * 6 + 0] << '\n';
-
-    // vertex 2
-    vtxIdx = tMesh.faces[i].v2;
-    vtxArray[i * 9 + 3] = tMesh.vertices[vtxIdx].x;
-    vtxArray[i * 9 + 4] = tMesh.vertices[vtxIdx].y;
-    vtxArray[i * 9 + 5] = tMesh.vertices[vtxIdx].z;
-
-    // color for vertex 2
-    clrArray[i * 9 + 3] = 0.f;
-    clrArray[i * 9 + 4] = 1.f;
-    clrArray[i * 9 + 5] = 0.f;
-
-    // normal for vertex 2
-    nmlIdx = tMesh.faces[i].vn2;
-    nmlArray[i * 9 + 3] = tMesh.faceNormals[nmlIdx].x;
-    nmlArray[i * 9 + 4] = tMesh.faceNormals[nmlIdx].y;
-    nmlArray[i * 9 + 5] = tMesh.faceNormals[nmlIdx].z;
-
-    // uv for vertex 2
-    uvIdx = tMesh.faces[i].vt2;
-    uvArray[i * 6 + 2] = tMesh.uvs[uvIdx].x;
-    uvArray[i * 6 + 3] = tMesh.uvs[uvIdx].y;
-
-    // vertex 3
-    vtxIdx = tMesh.faces[i].v3;
-    vtxArray[i * 9 + 6] = tMesh.vertices[vtxIdx].x;
-    vtxArray[i * 9 + 7] = tMesh.vertices[vtxIdx].y;
-    vtxArray[i * 9 + 8] = tMesh.vertices[vtxIdx].z;
-
-    // color for vertex 3
-    clrArray[i * 9 + 6] = 0.f;
-    clrArray[i * 9 + 7] = 1.f;
-    clrArray[i * 9 + 8] = 0.f;
-
-    // normal for vertex 3
-    nmlIdx = tMesh.faces[i].vn3;
-    nmlArray[i * 9 + 6] = tMesh.faceNormals[nmlIdx].x;
-    nmlArray[i * 9 + 7] = tMesh.faceNormals[nmlIdx].y;
-    nmlArray[i * 9 + 8] = tMesh.faceNormals[nmlIdx].z;
-
-    // uv for vertex 3
-    uvIdx = tMesh.faces[i].vt3;
-    uvArray[i * 6 + 4] = tMesh.uvs[uvIdx].x;
-    uvArray[i * 6 + 5] = tMesh.uvs[uvIdx].y;
+void initGL() {
+  // Initialise GLFW
+  if (!glfwInit()) {
+    fprintf(stderr, "Failed to initialize GLFW\n");
+    getchar();
   }
 
-  // prepare vao
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
+  // without setting GLFW_CONTEXT_VERSION_MAJOR and _MINOR，
+  // OpenGL 1.x will be used
+  glfwWindowHint(GLFW_SAMPLES, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-  // prepare vbo
-  // vertex vbo
-  glGenBuffers(1, &vboVtx);
-  glBindBuffer(GL_ARRAY_BUFFER, vboVtx);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nVertices * 3, vtxArray,
-               GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(0);
+  // must be used if OpenGL version >= 3.0
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  // normal vbo
-  glGenBuffers(1, &vboNml);
-  glBindBuffer(GL_ARRAY_BUFFER, vboNml);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nNormals * 3, nmlArray,
-               GL_STATIC_DRAW);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(1);
+  // Open a window and create its OpenGL context
+  window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT,
+                            "GLFW window with AntTweakBar", NULL, NULL);
 
-  // color vbo
-  glGenBuffers(1, &vboClr);
-  glBindBuffer(GL_ARRAY_BUFFER, vboClr);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nVertices * 3, clrArray,
-               GL_STATIC_DRAW);
-  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(2);
-
-  // uv vbo
-  glGenBuffers(1, &vboUv);
-  glBindBuffer(GL_ARRAY_BUFFER, vboUv);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nVertices * 2, uvArray,
-               GL_STATIC_DRAW);
-  glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(3);
-
-  // // texture object
-  FIBITMAP *textureImage = FreeImage_Load(FIF_JPEG, "./res/rock_basecolor.jpg");
-  if (!textureImage) {
-    std::cout << "FreeImage: cannot load image." << '\n';
+  if (window == NULL) {
+    std::cout << "Failed to open GLFW window." << std::endl;
+    glfwTerminate();
   }
 
-  textureImage = FreeImage_ConvertTo24Bits(textureImage);
-  if (!textureImage) {
-    std::cout << "FreeImage: cannot convert image." << '\n';
+  glfwMakeContextCurrent(window);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetKeyCallback(window, keyCallback);
+
+  /* Initialize GLEW */
+  // without this, glGenVertexArrays will report ERROR!
+  glewExperimental = GL_TRUE;
+
+  if (glewInit() != GLEW_OK) {
+    fprintf(stderr, "Failed to initialize GLEW\n");
+    getchar();
+    glfwTerminate();
   }
 
-  int texUnitId = 7;
-  glGenTextures(1, &vboTex);
-  glBindTexture(GL_TEXTURE_2D, vboTex);
-  glActiveTexture(GL_TEXTURE0 + texUnitId);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, FreeImage_GetWidth(textureImage),
-               FreeImage_GetHeight(textureImage), 0, GL_BGR, GL_UNSIGNED_BYTE,
-               (void *)FreeImage_GetBits(textureImage));
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_DEPTH_TEST);
+  // glCullFace(GL_FRONT_AND_BACK);
 
-  uniform_tex = myGetUniformLocation(programModel, "tex");
-  glUniform1i(uniform_tex, texUnitId);
+  // FreeImage library
+  FreeImage_Initialise(true);
+}
 
-  // draw mesh
-  glDrawArrays(GL_TRIANGLES, 0, nVertices);
+void initShader() {
+  string vsDir = shaderDir + "vsSkybox.glsl";
+  string fsDir = shaderDir + "fsSkybox.glsl";
+  programSkybox = buildShader(vsDir, fsDir);
 
-  // delete opengl objects
-  glDeleteBuffers(1, &vboVtx);
-  glDeleteBuffers(1, &vboClr);
-  glDeleteBuffers(1, &vboNml);
-  glDeleteBuffers(1, &vboUv);
-  glDeleteTextures(1, &vboTex);
-  glDeleteVertexArrays(1, &vao);
-  FreeImage_Unload(textureImage);
+  vsDir = shaderDir + "vsModel.glsl";
+  fsDir = shaderDir + "fsModel.glsl";
+  programModel = buildShader(vsDir, fsDir);
 
-  // delete arrays
-  delete[] vtxArray;
-  delete[] clrArray;
-  delete[] nmlArray;
-  delete[] uvArray;
+  glUseProgram(programSkybox);
+  glUseProgram(programModel);
+}
+
+void initMatrix() {
+  uniform_model_model = myGetUniformLocation(programModel, "model");
+  uniform_view_model = myGetUniformLocation(programModel, "view");
+  uniform_projection_model = myGetUniformLocation(programModel, "projection");
+
+  model_model = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
+  view_model = lookAt(eyePoint, eyePoint + eyeDirection, up);
+  projection_model = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT,
+                                 0.01f, farPlane);
+
+  glUniformMatrix4fv(uniform_model_model, 1, GL_FALSE, value_ptr(model_model));
+  glUniformMatrix4fv(uniform_view_model, 1, GL_FALSE, value_ptr(view_model));
+  glUniformMatrix4fv(uniform_projection_model, 1, GL_FALSE,
+                     value_ptr(projection_model));
+}
+
+void initLight() {
+  uniform_lightColor = myGetUniformLocation(programModel, "lightColor");
+  glUniform3fv(uniform_lightColor, 1, value_ptr(lightColor));
+
+  uniform_lightPosition = myGetUniformLocation(programModel, "lightPosition");
+  glUniform3fv(uniform_lightPosition, 1, value_ptr(lightPosition));
+
+  uniform_lightPower = myGetUniformLocation(programModel, "lightPower");
+  glUniform1f(uniform_lightPower, lightPower);
+
+  uniform_diffuseColor = myGetUniformLocation(programModel, "diffuseColor");
+  glUniform3fv(uniform_diffuseColor, 1, value_ptr(materialDiffuseColor));
+
+  uniform_ambientColor = myGetUniformLocation(programModel, "ambientColor");
+  glUniform3fv(uniform_ambientColor, 1, value_ptr(materialAmbientColor));
+
+  uniform_specularColor = myGetUniformLocation(programModel, "specularColor");
+  glUniform3fv(uniform_specularColor, 1, value_ptr(materialSpecularColor));
 }
