@@ -27,7 +27,6 @@ vec3 materialSpecular = vec3(1.f, 1.f, 1.f);
 
 const float SIZE = 500.f;
 GLfloat vtxsSkybox[] = {
-    // Positions
     -SIZE, SIZE,  -SIZE, -SIZE, -SIZE, -SIZE, SIZE,  -SIZE, -SIZE,
     SIZE,  -SIZE, -SIZE, SIZE,  SIZE,  -SIZE, -SIZE, SIZE,  -SIZE,
 
@@ -171,15 +170,15 @@ void computeMatricesFromInputs() {
   }
 
   // float FoV = initialFoV;
-  mat4 newProject = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT,
-                                0.1f, farPlane);
+  mat4 newP = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f,
+                          farPlane);
   // Camera matrix
-  mat4 newView = lookAt(eyePoint, eyePoint + direction, newUp);
+  mat4 newV = lookAt(eyePoint, eyePoint + direction, newUp);
 
   // update for skybox
   glUseProgram(shaderSkybox);
-  skyboxV = newView;
-  skyboxP = newProject;
+  skyboxV = newV;
+  skyboxP = newP;
   glUniformMatrix4fv(uniSkyboxV, 1, GL_FALSE, value_ptr(skyboxV));
   glUniformMatrix4fv(uniSkyboxP, 1, GL_FALSE, value_ptr(skyboxP));
 
@@ -192,8 +191,8 @@ void computeMatricesFromInputs() {
 
   // update for mesh
   glUseProgram(shaderMesh);
-  meshV = newView;
-  meshP = newProject;
+  meshV = newV;
+  meshP = newP;
   glUniformMatrix4fv(uniMeshV, 1, GL_FALSE, value_ptr(meshV));
   glUniformMatrix4fv(uniMeshP, 1, GL_FALSE, value_ptr(meshP));
 
@@ -282,28 +281,51 @@ void initOther() {
 }
 
 void initShader() {
-  // skybox
   shaderSkybox =
       buildShader("./shader/vsSkybox.glsl", "./shader/fsSkybox.glsl");
 
-  // mesh
   shaderMesh = buildShader("./shader/vsModel.glsl", "./shader/fsModel.glsl");
 }
 
 void initMatrix() {
+  // common
+  mat4 M, V, P;
+
+  M = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
+  V = lookAt(eyePoint, eyePoint + eyeDirection, up);
+  P = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01f,
+                  farPlane);
+
+  // mesh
   glUseProgram(shaderMesh);
+
+  meshM = M;
+  meshV = V;
+  meshP = P;
+
   uniMeshM = myGetUniformLocation(shaderMesh, "model");
   uniMeshV = myGetUniformLocation(shaderMesh, "view");
   uniMeshP = myGetUniformLocation(shaderMesh, "projection");
 
-  meshM = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
-  meshV = lookAt(eyePoint, eyePoint + eyeDirection, up);
-  meshP = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01f,
-                      farPlane);
-
   glUniformMatrix4fv(uniMeshM, 1, GL_FALSE, value_ptr(meshM));
   glUniformMatrix4fv(uniMeshV, 1, GL_FALSE, value_ptr(meshV));
   glUniformMatrix4fv(uniMeshP, 1, GL_FALSE, value_ptr(meshP));
+
+  // skybox
+  glUseProgram(shaderSkybox);
+
+  skyboxM = M;
+  oriSkyboxM = skyboxM;
+  skyboxV = V;
+  skyboxP = P;
+
+  uniSkyboxM = myGetUniformLocation(shaderSkybox, "model");
+  uniSkyboxV = myGetUniformLocation(shaderSkybox, "view");
+  uniSkyboxP = myGetUniformLocation(shaderSkybox, "projection");
+
+  glUniformMatrix4fv(uniSkyboxM, 1, GL_FALSE, value_ptr(skyboxM));
+  glUniformMatrix4fv(uniSkyboxV, 1, GL_FALSE, value_ptr(skyboxV));
+  glUniformMatrix4fv(uniSkyboxP, 1, GL_FALSE, value_ptr(skyboxP));
 }
 
 void initLight() {
@@ -344,8 +366,6 @@ void initSkybox() {
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-  // std::cout << GL_CLAMP_TO_EDGE << '\n';
-
   // read images into cubemap
   vector<string> texture_images;
   texture_images.push_back("./res/right.png");
@@ -377,20 +397,4 @@ void initSkybox() {
                GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(0);
-
-  // uniforms
-  glUseProgram(shaderSkybox);
-  uniSkyboxM = myGetUniformLocation(shaderSkybox, "model");
-  uniSkyboxV = myGetUniformLocation(shaderSkybox, "view");
-  uniSkyboxP = myGetUniformLocation(shaderSkybox, "projection");
-
-  skyboxM = translate(mat4(1.f), vec3(0.f, 0.f, -4.f));
-  oriSkyboxM = skyboxM;
-  skyboxV = lookAt(eyePoint, eyePoint + eyeDirection, up);
-  skyboxP = perspective(initialFoV, 1.f * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01f,
-                        farPlane);
-
-  glUniformMatrix4fv(uniSkyboxM, 1, GL_FALSE, value_ptr(skyboxM));
-  glUniformMatrix4fv(uniSkyboxV, 1, GL_FALSE, value_ptr(skyboxV));
-  glUniformMatrix4fv(uniSkyboxP, 1, GL_FALSE, value_ptr(skyboxP));
 }
