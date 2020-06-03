@@ -364,9 +364,6 @@ void initLight() {
 
 void initSkybox() {
   // texture
-  glGenVertexArrays(1, &vaoSkybox);
-  glBindVertexArray(vaoSkybox);
-
   glActiveTexture(GL_TEXTURE0);
   glGenTextures(1, &tboSkybox);
   glBindTexture(GL_TEXTURE_CUBE_MAP, tboSkybox);
@@ -379,30 +376,35 @@ void initSkybox() {
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
   // read images into cubemap
-  vector<string> texture_images;
-  texture_images.push_back("./res/left.png");
-  texture_images.push_back("./res/right.png");
-  texture_images.push_back("./res/bottom.png");
-  texture_images.push_back("./res/top.png");
-  texture_images.push_back("./res/front.png");
-  texture_images.push_back("./res/back.png");
+  vector<string> texImages;
+  texImages.push_back("./res/left.png");
+  texImages.push_back("./res/right.png");
+  texImages.push_back("./res/bottom.png");
+  texImages.push_back("./res/top.png");
+  texImages.push_back("./res/front.png");
+  texImages.push_back("./res/back.png");
 
-  for (GLuint i = 0; i < texture_images.size(); i++) {
+  for (GLuint i = 0; i < texImages.size(); i++) {
     int width, height;
     FIBITMAP *image;
 
     image = FreeImage_ConvertTo24Bits(
-        FreeImage_Load(FIF_PNG, texture_images[i].c_str()));
+        FreeImage_Load(FIF_PNG, texImages[i].c_str()));
     width = FreeImage_GetWidth(image);
     height = FreeImage_GetHeight(image);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
                  0, GL_BGR, GL_UNSIGNED_BYTE, (void *)FreeImage_GetBits(image));
+
     FreeImage_Unload(image);
   }
 
   // vbo
-  // cannot put these code before setting texture
+  // if put these code before setting texture,
+  // no skybox will be rendered
   // don't know why
+  glGenVertexArrays(1, &vaoSkybox);
+  glBindVertexArray(vaoSkybox);
+
   glGenBuffers(1, &vboSkybox);
   glBindBuffer(GL_ARRAY_BUFFER, vboSkybox);
   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 6 * 3, vtxsSkybox,
