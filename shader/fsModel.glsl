@@ -1,13 +1,5 @@
 #version 330
-in vec3 fragmentColor;
-in vec2 uv;
-out vec4 outputColor;
+in vec3 finalVertexColor;
+out vec4 fragmentColor;
 
-uniform sampler2D tex;
-
-void main(){
-    float alpha = 0;
-
-    outputColor = vec4( alpha * fragmentColor + (1 - alpha) * texture(tex, uv).xyz, 1.0 );
-    outputColor = vec4(fragmentColor, 1.0);
-}
+void main() { fragmentColor = vec4(finalVertexColor, 1.0); }
