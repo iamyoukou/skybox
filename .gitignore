@@ -1,3 +1,4 @@
-
+.clang-format
+.DS_Store
 main
 result/

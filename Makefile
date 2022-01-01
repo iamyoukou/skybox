@@ -1,14 +1,14 @@
 CXX=llvm-g++
 DIR=./src
 INCS=-c -std=c++17 \
--I/usr/local/Cellar/glew/2.1.0_1/include \
--I/usr/local/Cellar/glfw/3.3.2/include \
+-I/usr/local/Cellar/glew/2.2.0_1/include \
+-I/usr/local/Cellar/glfw/3.3.6/include \
 -I/usr/local/Cellar/freeimage/3.18.0/include \
 -I/usr/local/Cellar/glm/0.9.9.8/include \
 -I/Users/YJ-work/cpp/myGL_glfw/skybox/header
 
-LIBS=-L/usr/local/Cellar/glew/2.1.0_1/lib -lGLEW \
--L/usr/local/Cellar/glfw/3.3.2/lib -lglfw \
+LIBS=-L/usr/local/Cellar/glew/2.2.0_1/lib -lGLEW \
+-L/usr/local/Cellar/glfw/3.3.6/lib -lglfw \
 -L/usr/local/Cellar/freeimage/3.18.0/lib -lfreeimage \
 -framework GLUT -framework OpenGL -framework Cocoa
 
